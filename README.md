@@ -10,3 +10,4 @@ Download or clone the repository. Then run:
 
 ### TODO
 * Compute partnership from fall of wickets and batsmen list
+* Decide output format - file?

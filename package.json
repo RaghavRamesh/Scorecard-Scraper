@@ -1,0 +1,24 @@
+{
+  "name": "Scorecard-Scraper",
+  "version": "1.0.0",
+  "description": "Scrapes data from a scorecard URL.",
+  "main": "scraper.js",
+  "dependencies": {
+    "cheerio": "^0.20.0",
+    "tinyreq": "^3.1.2"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RaghavRamesh/Scorecard-Scraper.git"
+  },
+  "author": "Raghav",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/RaghavRamesh/Scorecard-Scraper/issues"
+  },
+  "homepage": "https://github.com/RaghavRamesh/Scorecard-Scraper"
+}

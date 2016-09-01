@@ -5,7 +5,7 @@ A script that scrapes partnership data from a cricket scorecard, given the score
 
 ### How to run?
 Download or clone the repository. Then run the following
-```node node_scraper_test.js```
+```node scraper.js```
 
 ### TODO
 * Compute partnership from fall of wickets and batsmen list

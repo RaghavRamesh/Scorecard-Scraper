@@ -58,12 +58,15 @@ function scrapeBatsmenList(url, cb) {
   });
 }
 
+// Parse argument
+var url = process.argv[2];
+
 // Extract fall of wickets
-scrapeFallOfWickets("http://seasonedprosg.com/Scorecard2015?Live=0&id=1252", function(err, data)  {
+scrapeFallOfWickets(url, function(err, data)  {
   console.log(err || data);
 });
 
-// scrapeBatsmenList("http://seasonedprosg.com/Scorecard2015?Live=0&id=1252", function(err, team1, team2)  {
+// scrapeBatsmenList(url, function(err, team1, team2)  {
 //   console.log(team1);
 //   console.log(team2);
 // });

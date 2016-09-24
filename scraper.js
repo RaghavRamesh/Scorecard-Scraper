@@ -63,15 +63,27 @@ var url = process.argv[2];
 
 // Extract fall of wickets
 scrapeFallOfWickets(url, function(err, data)  {
-  console.log(err || data);
-});
+  var str = data.replace('Fall of wickets: ', '').replace('Fall of wickets: ', '').replace('2nd Innings :', '');
+  var empty;
+  var strs = str.split('\r\n');
+  for (var i = 0; i < strs.length; i++) {
+    strs[i] = strs[i].trim();
+    if (strs[i] == '')
+      empty = i;
+  }
+  strs.splice(empty, 1);
 
-// scrapeBatsmenList(url, function(err, team1, team2)  {
-//   console.log(team1);
-//   console.log(team2);
-// });
+  var fallOfWicketsTeam1 = strs[0];
+  var fallOfWicketsTeam2 = strs[1];
+
+  scrapeBatsmenList("http://seasonedprosg.com/Scorecard2015?Live=0&id=1252", function(err, team1, team2)  {
+    console.log('Team 1 batting list:', team1);
+    console.log('Team 1 fall of wickets:', fallOfWicketsTeam1);
+    console.log('Team 2 batting list:', team2);
+    console.log('Team 2 fall of wickets:', fallOfWicketsTeam2);
+  });
+});
 
 // Compute partnership from batsman list and fall of wickets
 // Set URL as param instead of hardcoding
 // Find final format of data that is useful
-

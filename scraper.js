@@ -73,10 +73,12 @@ scrapeFallOfWickets(url, function(err, data)  {
   }
   strs.splice(empty, 1);
 
-  var fallOfWicketsTeam1 = strs[0];
-  var fallOfWicketsTeam2 = strs[1];
+  var fallOfWicketsTeam1 = strs[0].split(',');
+  var fallOfWicketsTeam2 = strs[1].split(',');
+  fallOfWicketsTeam1.splice(fallOfWicketsTeam1.length - 1, 1);
+  fallOfWicketsTeam2.splice(fallOfWicketsTeam2.length - 1, 1);
 
-  scrapeBatsmenList("http://seasonedprosg.com/Scorecard2015?Live=0&id=1252", function(err, team1, team2)  {
+  scrapeBatsmenList(url, function(err, team1, team2)  {
     console.log('Team 1 batting list:', team1);
     console.log('Team 1 fall of wickets:', fallOfWicketsTeam1);
     console.log('Team 2 batting list:', team2);

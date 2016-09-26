@@ -10,13 +10,14 @@ function scrapeFallOfWickets(url, cb) {
     if (err) { return cb(err); }
 
     // 2. Parse the HTML
-    var $ = cheerio.load(body), rawFallOfWickets;
+    var $ = cheerio.load(body), rawFallOfWickets, rawFinalScore, rawFinalOvers;
 
     // 3. Extract fall of wickets
     rawFallOfWickets = $('.table #match-general-info p:last-child').text();
-    finalScore = $('.table #match-general-info p:nth-child(5)').text();
+    rawFinalScore = $('.table #match-general-info p:nth-child(5)').text();
+    rawFinalOvers = $('.table #match-general-info p:nth-child(2)').text();
     // Send the data in the callback
-    cb(null, rawFallOfWickets, finalScore);
+    cb(null, rawFallOfWickets, rawFinalScore, rawFinalOvers);
     // cb(null, batsmenTeam1);
   });
 }
@@ -62,7 +63,7 @@ function scrapeBatsmenList(url, cb) {
 var url = process.argv[2];
 
 // Extract fall of wickets
-scrapeFallOfWickets(url, function(err, data, finalScoreData)  {
+scrapeFallOfWickets(url, function(err, data, finalScoreData, finalOverData)  {
   // Process FoW into a JSON
   var str = data.replace('Fall of wickets: ', '').replace('Fall of wickets: ', '').replace('2nd Innings :', '');
   var empty;
@@ -102,9 +103,17 @@ scrapeFallOfWickets(url, function(err, data, finalScoreData)  {
   }
   // console.log(team2FoWJSON);
 
-  // Process final score and wkts
-  var finalScoreData = finalScoreData.replace('\r\n', '');
-  console.log(finalScoreData);
+  // Process final score and overs
+  finalScoreData = finalScoreData.replace('Total Runs/Wickets : ', '').replace('Total Runs/Wickets : ', '').replace('\r\n', '');
+  var finalScores = finalScoreData.split('\r\n');
+  finalScores[0] = finalScores[0].trim();
+  finalScores[1] = finalScores[1].trim();
+
+  finalOverData = finalOverData.replace('Overs : ', '').replace(' Overs ', '').replace('Overs : ', '').replace(' Overs ', '').replace('\r\n', '').replace('1st Innings : Rain interrupted at 13.0 Overs, Match reduced to 20 overs', '');
+  var finalOvers = finalOverData.split('\r\n');
+  finalOvers[0] = finalOvers[0].trim();
+  finalOvers[1] = finalOvers[1].trim();
+  // console.log(finalOvers);
 
   scrapeBatsmenList(url, function(err, team1BatsmenList, team2BatsmenList) {
     // console.log(team1BatsmenList);
@@ -130,13 +139,17 @@ scrapeFallOfWickets(url, function(err, data, finalScoreData)  {
       }
     }
     // TODO: Scrape final score and overs
-    var finalScore = 155, finalOver = '20.0';
-    partnershipJSON.push({
-      'batsmen': [notout, team1BatsmenList[i]],
-      'runs': finalScore - team1FoWJSON[i-2][i-2]['score'],
-      'balls': convertOversToBalls(finalOver) - convertOversToBalls(team1FoWJSON[i-2][i-2]['over'])
-    });
-    // console.log(partnershipJSON);
+    var team1FinalScore = finalScores[0].split('/')[0];
+    var team1FinalOver = finalOvers[0];
+    console.log(team1FinalOver);
+    if (team1BatsmenList.length != 11) {
+      partnershipJSON.push({
+        'batsmen': [notout, team1BatsmenList[i]],
+        'runs': parseInt(team1FinalScore) - team1FoWJSON[i-2][i-2]['score'],
+        'balls': convertOversToBalls(team1FinalOver) - convertOversToBalls(team1FoWJSON[i-2][i-2]['over'])
+      });
+    }
+    console.log(partnershipJSON);
   });
 
   // TODO: Find final format of data that is useful
@@ -144,5 +157,7 @@ scrapeFallOfWickets(url, function(err, data, finalScoreData)  {
 
 function convertOversToBalls(overs) {
   var parts = overs.split('.');
+  if (parts.length != 2)
+    return parseInt(parts[0])*6;
   return parseInt(parts[0])*6 + parseInt(parts[1]);
 }

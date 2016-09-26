@@ -14,9 +14,9 @@ function scrapeFallOfWickets(url, cb) {
 
     // 3. Extract fall of wickets
     rawFallOfWickets = $('.table #match-general-info p:last-child').text();
-
+    finalScore = $('.table #match-general-info p:nth-child(5)').text();
     // Send the data in the callback
-    cb(null, rawFallOfWickets);
+    cb(null, rawFallOfWickets, finalScore);
     // cb(null, batsmenTeam1);
   });
 }
@@ -62,7 +62,7 @@ function scrapeBatsmenList(url, cb) {
 var url = process.argv[2];
 
 // Extract fall of wickets
-scrapeFallOfWickets(url, function(err, data)  {
+scrapeFallOfWickets(url, function(err, data, finalScoreData)  {
   // Process FoW into a JSON
   var str = data.replace('Fall of wickets: ', '').replace('Fall of wickets: ', '').replace('2nd Innings :', '');
   var empty;
@@ -83,25 +83,66 @@ scrapeFallOfWickets(url, function(err, data)  {
   var team2FoWJSON = [];
   for (var i = 0; i < fallOfWicketsTeam1.length; i++) {
     var obj = {};
-    obj[i+1] = {
-      'score': fallOfWicketsTeam1[i].split('(')[0],
-      'over': fallOfWicketsTeam1[i].match('[0-9]+.[0-9] (ov)')[0],
+    obj[i] = {
+      'score': fallOfWicketsTeam1[i].split('(')[0].trim().split('-')[1],
+      'over': fallOfWicketsTeam1[i].match('[0-9]+.[0-9] ')[0].trim(),
       'name': fallOfWicketsTeam1[i].split('(')[1].replace(/[0-9]+.[0-9] (ov)\)/g, '')
     };
     team1FoWJSON.push(obj);
   }
-  console.log(team1FoWJSON);
+  // console.log(team1FoWJSON[0]['0']['score']);
   for (var i = 0; i < fallOfWicketsTeam2.length; i++) {
     var obj = {};
-    obj[i+1] = {
-      'score': fallOfWicketsTeam2[i].split('(')[0],
-      'over': fallOfWicketsTeam2[i].match('[0-9]+.[0-9] (ov)')[0],
+    obj[i] = {
+      'score': fallOfWicketsTeam2[i].split('(')[0].trim().split('-')[1],
+      'over': fallOfWicketsTeam2[i].match('[0-9]+.[0-9] ')[0].trim(),
       'name': fallOfWicketsTeam2[i].split('(')[1].replace(/[0-9]+.[0-9] (ov)\)/g, '')
     };
     team2FoWJSON.push(obj);
   }
-  console.log(team2FoWJSON);
+  // console.log(team2FoWJSON);
 
-  // Compute partnership from batsman list and fall of wickets
-  // Find final format of data that is useful
+  // Process final score and wkts
+  var finalScoreData = finalScoreData.replace('\r\n', '');
+  console.log(finalScoreData);
+
+  scrapeBatsmenList(url, function(err, team1BatsmenList, team2BatsmenList) {
+    // console.log(team1BatsmenList);
+
+    var partnershipJSON = [], notout = '', out = '', runs = 0, i;
+    for (i = 1; i <= team1FoWJSON.length; i++) {
+      if (i == 1) {
+        partnershipJSON.push({
+          'batsmen': [team1BatsmenList[0], team1BatsmenList[1]],
+          'runs': team1FoWJSON[i-1][i-1]['score'] - 0,
+          'balls': convertOversToBalls(team1FoWJSON[i-1][i-1]['over']) - 0
+        });
+        out = team1FoWJSON[i-1][i-1]['name'];
+        notout = (out == team1BatsmenList[0]) ? team1BatsmenList[1] : team1BatsmenList[0];
+      } else {
+        partnershipJSON.push({
+          'batsmen': [notout, team1BatsmenList[i]],
+          'runs': team1FoWJSON[i-1][i-1]['score'] - team1FoWJSON[i-2][i-2]['score'],
+          'balls': convertOversToBalls(team1FoWJSON[i-1][i-1]['over']) - convertOversToBalls(team1FoWJSON[i-2][i-2]['over'])
+        });
+        out = team1FoWJSON[i-1][i-1]['name'];
+        notout = (out == team1BatsmenList[i]) ? notout : team1BatsmenList[i];
+      }
+    }
+    // TODO: Scrape final score and overs
+    var finalScore = 155, finalOver = '20.0';
+    partnershipJSON.push({
+      'batsmen': [notout, team1BatsmenList[i]],
+      'runs': finalScore - team1FoWJSON[i-2][i-2]['score'],
+      'balls': convertOversToBalls(finalOver) - convertOversToBalls(team1FoWJSON[i-2][i-2]['over'])
+    });
+    // console.log(partnershipJSON);
+  });
+
+  // TODO: Find final format of data that is useful
 });
+
+function convertOversToBalls(overs) {
+  var parts = overs.split('.');
+  return parseInt(parts[0])*6 + parseInt(parts[1]);
+}

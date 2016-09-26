@@ -63,6 +63,7 @@ var url = process.argv[2];
 
 // Extract fall of wickets
 scrapeFallOfWickets(url, function(err, data)  {
+  // Process FoW into a JSON
   var str = data.replace('Fall of wickets: ', '').replace('Fall of wickets: ', '').replace('2nd Innings :', '');
   var empty;
   var strs = str.split('\r\n');
@@ -78,14 +79,29 @@ scrapeFallOfWickets(url, function(err, data)  {
   fallOfWicketsTeam1.splice(fallOfWicketsTeam1.length - 1, 1);
   fallOfWicketsTeam2.splice(fallOfWicketsTeam2.length - 1, 1);
 
-  scrapeBatsmenList(url, function(err, team1, team2)  {
-    console.log('Team 1 batting list:', team1);
-    console.log('Team 1 fall of wickets:', fallOfWicketsTeam1);
-    console.log('Team 2 batting list:', team2);
-    console.log('Team 2 fall of wickets:', fallOfWicketsTeam2);
-  });
-});
+  var team1FoWJSON = [];
+  var team2FoWJSON = [];
+  for (var i = 0; i < fallOfWicketsTeam1.length; i++) {
+    var obj = {};
+    obj[i+1] = {
+      'score': fallOfWicketsTeam1[i].split('(')[0],
+      'over': fallOfWicketsTeam1[i].match('[0-9]+.[0-9] (ov)')[0],
+      'name': fallOfWicketsTeam1[i].split('(')[1].replace(/[0-9]+.[0-9] (ov)\)/g, '')
+    };
+    team1FoWJSON.push(obj);
+  }
+  console.log(team1FoWJSON);
+  for (var i = 0; i < fallOfWicketsTeam2.length; i++) {
+    var obj = {};
+    obj[i+1] = {
+      'score': fallOfWicketsTeam2[i].split('(')[0],
+      'over': fallOfWicketsTeam2[i].match('[0-9]+.[0-9] (ov)')[0],
+      'name': fallOfWicketsTeam2[i].split('(')[1].replace(/[0-9]+.[0-9] (ov)\)/g, '')
+    };
+    team2FoWJSON.push(obj);
+  }
+  console.log(team2FoWJSON);
 
-// Compute partnership from batsman list and fall of wickets
-// Set URL as param instead of hardcoding
-// Find final format of data that is useful
+  // Compute partnership from batsman list and fall of wickets
+  // Find final format of data that is useful
+});

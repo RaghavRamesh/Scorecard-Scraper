@@ -1,6 +1,7 @@
 // Import the dependencies
 var cheerio = require("cheerio")
   , req = require("tinyreq")
+  , fs = require('fs')
   ;
 
 // Scrapes fall of wickets from an SPro Scorecard URL
@@ -12,13 +13,13 @@ function scrapeFallOfWickets(url, cb) {
     // 2. Parse the HTML
     var $ = cheerio.load(body), rawFallOfWickets, rawFinalScore, rawFinalOvers;
 
-    // 3. Extract fall of wickets
+    // 3. Extract fall of wickets, final score and overs
     rawFallOfWickets = $('.table #match-general-info p:last-child').text();
     rawFinalScore = $('.table #match-general-info p:nth-child(5)').text();
     rawFinalOvers = $('.table #match-general-info p:nth-child(2)').text();
+
     // Send the data in the callback
     cb(null, rawFallOfWickets, rawFinalScore, rawFinalOvers);
-    // cb(null, batsmenTeam1);
   });
 }
 
@@ -59,13 +60,53 @@ function scrapeBatsmenList(url, cb) {
   });
 }
 
+function convertOversToBalls(overs) {
+  var parts = overs.split('.');
+  if (parts.length != 2)
+    return parseInt(parts[0])*6;
+  return parseInt(parts[0])*6 + parseInt(parts[1]);
+}
+
+function computePartnership(batsmen, fallOfWickets, finalScore, finalOvers) {
+  var partnershipJSON = [], notout = '', out = '', runs = 0, i;
+  for (i = 1; i <= fallOfWickets.length; i++) {
+    if (i == 1) {
+      partnershipJSON.push({
+        'batsmen': [batsmen[0], batsmen[1]],
+        'runs': fallOfWickets[i-1][i-1]['score'] - 0,
+        'balls': convertOversToBalls(fallOfWickets[i-1][i-1]['over']) - 0
+      });
+      out = fallOfWickets[i-1][i-1]['name'];
+      notout = (out == batsmen[0]) ? batsmen[1] : batsmen[0];
+    } else {
+      partnershipJSON.push({
+        'batsmen': [notout, batsmen[i]],
+        'runs': fallOfWickets[i-1][i-1]['score'] - fallOfWickets[i-2][i-2]['score'],
+        'balls': convertOversToBalls(fallOfWickets[i-1][i-1]['over']) - convertOversToBalls(fallOfWickets[i-2][i-2]['over'])
+      });
+      out = fallOfWickets[i-1][i-1]['name'];
+      notout = (out == batsmen[i]) ? notout : batsmen[i];
+    }
+  }
+
+  if (batsmen.length != 11) {
+    partnershipJSON.push({
+      'batsmen': [notout, batsmen[i]],
+      'runs': parseInt(finalScore) - fallOfWickets[i-2][i-2]['score'],
+      'balls': convertOversToBalls(finalOvers) - convertOversToBalls(fallOfWickets[i-2][i-2]['over'])
+    });
+  }
+  console.log(partnershipJSON);
+  return partnershipJSON;
+}
+
 // Parse argument
 var url = process.argv[2];
 
 // Extract fall of wickets
-scrapeFallOfWickets(url, function(err, data, finalScoreData, finalOverData)  {
+scrapeFallOfWickets(url, function(err, fallOfWicketsData, finalScoreData, finalOverData)  {
   // Process FoW into a JSON
-  var str = data.replace('Fall of wickets: ', '').replace('Fall of wickets: ', '').replace('2nd Innings :', '');
+  var str = fallOfWicketsData.replace('Fall of wickets: ', '').replace('Fall of wickets: ', '').replace('2nd Innings :', '');
   var empty;
   var strs = str.split('\r\n');
   for (var i = 0; i < strs.length; i++) {
@@ -117,47 +158,23 @@ scrapeFallOfWickets(url, function(err, data, finalScoreData, finalOverData)  {
 
   scrapeBatsmenList(url, function(err, team1BatsmenList, team2BatsmenList) {
     // console.log(team1BatsmenList);
-
-    var partnershipJSON = [], notout = '', out = '', runs = 0, i;
-    for (i = 1; i <= team1FoWJSON.length; i++) {
-      if (i == 1) {
-        partnershipJSON.push({
-          'batsmen': [team1BatsmenList[0], team1BatsmenList[1]],
-          'runs': team1FoWJSON[i-1][i-1]['score'] - 0,
-          'balls': convertOversToBalls(team1FoWJSON[i-1][i-1]['over']) - 0
-        });
-        out = team1FoWJSON[i-1][i-1]['name'];
-        notout = (out == team1BatsmenList[0]) ? team1BatsmenList[1] : team1BatsmenList[0];
-      } else {
-        partnershipJSON.push({
-          'batsmen': [notout, team1BatsmenList[i]],
-          'runs': team1FoWJSON[i-1][i-1]['score'] - team1FoWJSON[i-2][i-2]['score'],
-          'balls': convertOversToBalls(team1FoWJSON[i-1][i-1]['over']) - convertOversToBalls(team1FoWJSON[i-2][i-2]['over'])
-        });
-        out = team1FoWJSON[i-1][i-1]['name'];
-        notout = (out == team1BatsmenList[i]) ? notout : team1BatsmenList[i];
-      }
-    }
-    // TODO: Scrape final score and overs
     var team1FinalScore = finalScores[0].split('/')[0];
-    var team1FinalOver = finalOvers[0];
-    console.log(team1FinalOver);
-    if (team1BatsmenList.length != 11) {
-      partnershipJSON.push({
-        'batsmen': [notout, team1BatsmenList[i]],
-        'runs': parseInt(team1FinalScore) - team1FoWJSON[i-2][i-2]['score'],
-        'balls': convertOversToBalls(team1FinalOver) - convertOversToBalls(team1FoWJSON[i-2][i-2]['over'])
-      });
-    }
-    console.log(partnershipJSON);
+    var team1FinalOvers = finalOvers[0];
+    var team2FinalScore = finalScores[1].split('/')[0];
+    var team2FinalOvers = finalOvers[1];
+
+    var team1Partnership = computePartnership(team1BatsmenList, team1FoWJSON, team1FinalScore, team1FinalOvers);
+    var team2Partnership = computePartnership(team2BatsmenList, team2FoWJSON, team2FinalScore, team2FinalOvers);
+
+    fs.writeFile('data/team1Partnership.json', JSON.stringify(team1Partnership), function(err) {
+      if (!err)
+        console.log('written');
+    });
+    fs.writeFile('data/team2Partnership.json', JSON.stringify(team1Partnership), function(err) {
+      if (!err)
+        console.log('written');
+    });
   });
 
-  // TODO: Find final format of data that is useful
+  // TODO: Handle errors for abandoned matches/innings
 });
-
-function convertOversToBalls(overs) {
-  var parts = overs.split('.');
-  if (parts.length != 2)
-    return parseInt(parts[0])*6;
-  return parseInt(parts[0])*6 + parseInt(parts[1]);
-}

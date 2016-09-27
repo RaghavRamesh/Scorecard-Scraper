@@ -8,6 +8,5 @@ Download or clone the repository. Then run:
 
 ```node scraper.js 'url'```
 
-### TODO
-* Compute partnership from fall of wickets and batsmen list
-* Decide output format - file?
+### Output
+The script creates two JSON files in ```./data/``` folder which contains the partnership data for both files.

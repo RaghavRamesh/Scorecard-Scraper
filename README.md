@@ -9,4 +9,4 @@ Download or clone the repository. Then run:
 ```node scraper.js 'url'```
 
 ### Output
-The script creates two JSON files in ```./data/``` folder which contains the partnership data for both files.
+The script creates two JSON files in ```./data/``` folder which contains the partnership data for both teams.

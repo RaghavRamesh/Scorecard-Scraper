@@ -1,6 +1,6 @@
 # Scorecard-Scraper
 
-### What it is?
+### What is it?
 A script that scrapes the cricket scorecard given the URL. 
 
 ### How to run?

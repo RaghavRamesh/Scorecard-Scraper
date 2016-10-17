@@ -1,7 +1,10 @@
 # Scorecard-Scraper
 
 ### What is it?
-A script that scrapes a cricket scorecard given the URL. 
+A script that scrapes a cricket scorecard given the URL and computes the batting `partnerships` of the match.
+
+### But why?
+`Partnership` is an important stat that aids the analysis of a team's performance in a cricket match. 
 
 ### How to run?
 Run
